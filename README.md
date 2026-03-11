@@ -45,26 +45,12 @@ public abstract void NAME(int x);
 <li>___ - пробел</li>
 <li>индификатор</li>
 </ul>
-private
-protected
-internal
-public
-abstract
-void
-int
-bool
-char
-string
-(
-)
-,
-;
-___ - пробел
+
 ---
-*![Диаграмма состояния:]* ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\3.png)
-*![Пример правильного ввода:]* ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\1.png)
-*![Пример неправильного ввода:]* ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\2.png)
-*![Пример многострочия:]* --- (C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\4.png)
+![Диаграмма состояния:] ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\3.png)
+![Пример правильного ввода:] ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\1.png)
+![Пример неправильного ввода:] ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\2.png)
+![Пример многострочия:] --- (C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\4.png)
 
 =======
 
