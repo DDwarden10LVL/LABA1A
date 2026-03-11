@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Text;
 using System.Windows.Forms;
 
 namespace LABA1A
@@ -12,7 +13,331 @@ namespace LABA1A
         private bool isTextModified = false;
         private SplitContainer splitContainer;
 
-        // Ключевые слова для подсветки синтаксиса (дополнительное задание)
+        private enum TokenType
+        {
+            KeywordPrivate = 1,
+            KeywordPrivateProtected = 2,
+            KeywordProtected = 3,
+            KeywordInternal = 4,
+            KeywordInternalProtected = 5,
+            KeywordPublic = 6,
+            KeywordAbstract = 7,
+            KeywordVoid = 8,
+            KeywordInt = 9,
+            KeywordBool = 10,
+            KeywordChar = 11,
+            KeywordString = 12,
+            Whitespace = 13,
+            OpenParen = 14,
+            CloseParen = 15,
+            Comma = 16,
+            Semicolon = 17,
+            Identifier = 18,
+            Error = -1
+        }
+        //Храним инфу о кадой выд лексеме во время прогонки
+        private class Token
+        {
+            public int Code { get; set; } //чис иннд
+            public string Type { get; set; } // для отображения
+            public string Lexeme { get; set; } //строка разбита
+            public int Line { get; set; }
+            public int StartPos { get; set; }
+            public int EndPos { get; set; }
+        }
+
+        private class Scanner
+        {
+            private HashSet<string> keywords = new HashSet<string>
+            {
+                "private", "protected", "internal", "public", "abstract",
+                "void", "int", "bool", "char", "string"
+            };
+
+            private enum State
+            {
+                Start,
+                KeywordOrIdentifier,//ключ слово
+                Delimiter,// разделитель
+                Operator,//скобки, запятые, точказап
+                Error,
+                Finish
+            }
+
+            private string text;
+            private int position;
+            private int line;
+            private int lineStartPos;
+            private List<Token> tokens;
+            private StringBuilder lexemeBuffer;
+            private int lexemeStartPos;
+            private int lexemeStartLine;
+
+            public List<Token> Analyze(string inputText)// конеч сканер
+            {
+                text = inputText;
+                position = 0;
+                line = 1;
+                lineStartPos = 0;
+                tokens = new List<Token>();//пуст
+                lexemeBuffer = new StringBuilder();
+
+                State currentState = State.Start;
+
+                while (currentState != State.Finish)
+                {
+                    switch (currentState)
+                    {
+                        case State.Start:
+                            currentState = ProcessStart();
+                            break;
+                        case State.KeywordOrIdentifier:
+                            currentState = ProcessKeywordOrIdentifier();
+                            break;
+                        case State.Delimiter:
+                            currentState = ProcessDelimiter();
+                            break;
+                        case State.Operator:
+                            currentState = ProcessOperator();
+                            break;
+                        case State.Error:
+                            currentState = ProcessError();
+                            break;
+                    }
+                }
+
+                return tokens;// список найденых лексем
+            }
+
+            private State ProcessStart()
+            {
+                if (position >= text.Length)
+                {
+                    return State.Finish;
+                }
+
+                char currentChar = text[position];
+
+                lexemeBuffer.Clear();//перед новой лексемой
+                lexemeStartPos = position - lineStartPos;
+                lexemeStartLine = line;
+
+                if (char.IsLetter(currentChar) || currentChar == '_')
+                {
+                    lexemeBuffer.Append(currentChar);
+                    position++;
+                    return State.KeywordOrIdentifier;
+                }
+                else if (currentChar == ' ')
+                {
+                    lexemeBuffer.Append(currentChar);
+                    position++;
+                    return State.Delimiter;
+                }
+                else if (currentChar == '(' || currentChar == ')' || currentChar == ',' || currentChar == ';')
+                {
+                    lexemeBuffer.Append(currentChar);
+                    position++;
+                    return State.Operator;
+                }
+                else if (currentChar == '\n')// конец
+                {
+                    line++;
+                    lineStartPos = position + 1;
+                    position++;
+                    return State.Start;
+                }
+                else if (currentChar == '\r')// переход
+                {
+                    position++;
+                    return State.Start;
+                }
+                else
+                {
+                    lexemeBuffer.Append(currentChar);
+                    position++;
+                    return State.Error;
+                }
+            }
+
+            private State ProcessKeywordOrIdentifier()
+            {
+                if (position >= text.Length)
+                {
+                    FinalizeKeywordOrIdentifier();
+                    return State.Finish;
+                }
+
+                char currentChar = text[position];
+
+                if (char.IsLetterOrDigit(currentChar) || currentChar == '_')
+                {
+                    lexemeBuffer.Append(currentChar);
+                    position++;
+                    return State.KeywordOrIdentifier;// продолжаем наполнять
+                }
+                else//символ не конец слова
+                {
+                    FinalizeKeywordOrIdentifier();//токен
+                    return State.Start;
+                }
+            }
+
+            private State ProcessDelimiter()
+            {
+                FinalizeDelimiter();//лексема пробел
+                return State.Start;
+            }
+
+            private State ProcessOperator()
+            {
+                FinalizeOperator();// лексема ();,
+                return State.Start;
+            }
+
+            private State ProcessError()
+            {
+                FinalizeError();
+                return State.Start;
+            }
+
+            private void FinalizeKeywordOrIdentifier()//создает лексему из буфера
+            {
+                string lexeme = lexemeBuffer.ToString();
+                Token token = new Token
+                {
+                    Lexeme = lexeme,
+                    Line = lexemeStartLine,
+                    StartPos = lexemeStartPos,
+                    EndPos = lexemeStartPos + lexeme.Length - 1
+                };
+
+                if (keywords.Contains(lexeme))//kw - hashset
+                {
+                    switch (lexeme)
+                    {
+                        case "private":
+                            token.Code = (int)TokenType.KeywordPrivate;
+                            token.Type = "ключевое слово private";
+                            break;
+                        case "protected":
+                            token.Code = (int)TokenType.KeywordProtected;
+                            token.Type = "ключевое слово protected";
+                            break;
+                        case "internal":
+                            token.Code = (int)TokenType.KeywordInternal;
+                            token.Type = "ключевое слово internal";
+                            break;
+                        case "public":
+                            token.Code = (int)TokenType.KeywordPublic;
+                            token.Type = "ключевое слово public";
+                            break;
+                        case "abstract":
+                            token.Code = (int)TokenType.KeywordAbstract;
+                            token.Type = "ключевое слово abstract";
+                            break;
+                        case "void":
+                            token.Code = (int)TokenType.KeywordVoid;
+                            token.Type = "ключевое слово void";
+                            break;
+                        case "int":
+                            token.Code = (int)TokenType.KeywordInt;
+                            token.Type = "ключевое слово int";
+                            break;
+                        case "bool":
+                            token.Code = (int)TokenType.KeywordBool;
+                            token.Type = "ключевое слово bool";
+                            break;
+                        case "char":
+                            token.Code = (int)TokenType.KeywordChar;
+                            token.Type = "ключевое слово char";
+                            break;
+                        case "string":
+                            token.Code = (int)TokenType.KeywordString;
+                            token.Type = "ключевое слово string";
+                            break;
+                    }
+                }
+                else
+                {
+                    token.Code = (int)TokenType.Identifier;
+                    token.Type = "идентификатор";//типо ___ ___ NAME(___ X);
+                }
+
+                tokens.Add(token);//сохранение
+            }
+
+            private void FinalizeDelimiter()
+            {
+                string lexeme = lexemeBuffer.ToString();
+                Token token = new Token
+                {
+                    Lexeme = lexeme,
+                    Code = (int)TokenType.Whitespace,
+                    Type = "разделитель (пробел)",
+                    Line = lexemeStartLine,
+                    StartPos = lexemeStartPos,
+                    EndPos = lexemeStartPos + lexeme.Length - 1
+                };
+
+                tokens.Add(token);
+            }
+
+            private void FinalizeOperator()
+            {
+                string lexeme = lexemeBuffer.ToString();
+                char op = lexeme[0];
+
+                Token token = new Token
+                {
+                    Lexeme = lexeme,
+                    Line = lexemeStartLine,
+                    StartPos = lexemeStartPos,
+                    EndPos = lexemeStartPos + lexeme.Length - 1
+                };
+
+                switch (op)
+                {
+                    case '(':
+                        token.Code = (int)TokenType.OpenParen;
+                        token.Type = "открывающая скобка";
+                        break;
+                    case ')':
+                        token.Code = (int)TokenType.CloseParen;
+                        token.Type = "закрывающая скобка";
+                        break;
+                    case ',':
+                        token.Code = (int)TokenType.Comma;
+                        token.Type = "разделитель (запятая)";
+                        break;
+                    case ';':
+                        token.Code = (int)TokenType.Semicolon;
+                        token.Type = "конец оператора";
+                        break;
+                }
+
+                tokens.Add(token);
+            }
+
+            private void FinalizeError()
+            {
+                string lexeme = lexemeBuffer.ToString();
+                Token token = new Token
+                {
+                    Lexeme = lexeme,
+                    Code = (int)TokenType.Error,
+                    Type = "НЕДОПУСТИМЫЙ СИМВОЛ",
+                    Line = lexemeStartLine,
+                    StartPos = lexemeStartPos,
+                    EndPos = lexemeStartPos + lexeme.Length - 1
+                };
+
+                tokens.Add(token);
+            }
+        }
+        /// <summary>
+        /// /////////////////////////////////////
+        /// </summary>
         private readonly List<string> keywords = new List<string>
         {
             "if", "else", "while", "for", "foreach", "switch", "case",
@@ -28,33 +353,20 @@ namespace LABA1A
             this.Text = "Текстовый редактор - Лабораторная работа 1";
             UpdateTitle();
 
-            // Подписываемся на события
             this.FormClosing += Form1_FormClosing;
         }
 
         private void InitializeCustomComponents()
         {
-            // Очищаем форму от стандартных элементов управления
             this.Controls.Clear();
 
-            // Создаем SplitContainer для изменения размеров областей
             splitContainer = new SplitContainer
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal
             };
+            richTextBox1.TextChanged += RichTextBox1_TextChanged;
 
-            // Настраиваем RichTextBox для редактирования
-            //richTextBox1 = new RichTextBox
-            //{
-            //    Dock = DockStyle.Fill,
-            //    WordWrap = false,
-            //    Font = new Font("Consolas", 10),
-            //    ScrollBars = RichTextBoxScrollBars.Both
-            //};
-            //richTextBox1.TextChanged += RichTextBox1_TextChanged;
-
-            // Настраиваем DataGridView для вывода результатов
             dataGridView1 = new DataGridView
             {
                 Dock = DockStyle.Fill,
@@ -66,48 +378,36 @@ namespace LABA1A
                 RowHeadersVisible = false
             };
 
-            // Добавляем колонки
-            dataGridView1.Columns.Add("Line", "Строка");
-            dataGridView1.Columns.Add("Position", "Позиция");
-            dataGridView1.Columns.Add("Message", "Сообщение");
-            dataGridView1.Columns["Line"].Width = 60;
-            dataGridView1.Columns["Position"].Width = 60;
+            dataGridView1.Columns.Add("Code", "Условный код");
+            dataGridView1.Columns.Add("Type", "Тип лексемы");
+            dataGridView1.Columns.Add("Lexeme", "Лексема");
+            dataGridView1.Columns.Add("Location", "Местоположение");
 
-            // Добавляем обработчик клика
             dataGridView1.CellClick += DataGridView1_CellClick;
 
-            // Добавляем элементы в SplitContainer
             splitContainer.Panel1.Controls.Add(richTextBox1);
             splitContainer.Panel2.Controls.Add(dataGridView1);
 
-            // Устанавливаем начальное соотношение размеров (70%/30%)
             splitContainer.SplitterDistance = (int)(this.ClientSize.Height * 0.7);
 
-            // Добавляем SplitContainer на форму
             this.Controls.Add(splitContainer);
-
-            // Добавляем menuStrip и toolStrip обратно
             this.Controls.Add(menuStrip1);
             this.Controls.Add(toolStrip1);
 
-            // Устанавливаем правильный порядок
             menuStrip1.BringToFront();
             toolStrip1.BringToFront();
 
-            // Подключаем обработчики событий для меню
             SubscribeMenuEvents();
         }
 
         private void SubscribeMenuEvents()
         {
-            // Файл
             новыйФаилToolStripMenuItem.Click += NewFile_Click;
             открытьToolStripMenuItem.Click += OpenFile_Click;
             сохранитьToolStripMenuItem.Click += SaveFile_Click;
             сохранитьКакToolStripMenuItem.Click += SaveAsFile_Click;
             выходToolStripMenuItem.Click += Exit_Click;
 
-            // Правка
             отменитьToolStripMenuItem.Click += Undo_Click;
             повторитьToolStripMenuItem.Click += Redo_Click;
             вырезатьToolStripMenuItem.Click += Cut_Click;
@@ -116,7 +416,6 @@ namespace LABA1A
             удалитьToolStripMenuItem.Click += Delete_Click;
             выделитьВсеToolStripMenuItem.Click += SelectAll_Click;
 
-            // Текст (пока просто показываем сообщения)
             постановкаЗадачиToolStripMenuItem.Click += (s, e) => ShowInfoWindow("Постановка задачи", "Здесь будет постановка задачи");
             грамматикаToolStripMenuItem.Click += (s, e) => ShowInfoWindow("Грамматика", "Здесь будет описание грамматики");
             классификацияГрамматикиToolStripMenuItem.Click += (s, e) => ShowInfoWindow("Классификация грамматики", "Здесь будет классификация грамматики");
@@ -125,25 +424,22 @@ namespace LABA1A
             списокЛитературыToolStripMenuItem.Click += (s, e) => ShowInfoWindow("Список литературы", "Здесь будет список литературы");
             исходныйКодПрограммыToolStripMenuItem.Click += (s, e) => ShowInfoWindow("Исходный код программы", "Здесь будет исходный код");
 
-            // Пуск
             пускToolStripMenuItem.Click += StartAnalysis_Click;
 
-            // Справка
             вызовСправкиToolStripMenuItem.Click += Help_Click;
             оПрограммеToolStripMenuItem.Click += About_Click;
 
-            // Панель инструментов
-            toolStripButton1.Click += NewFile_Click;      // Создать
-            toolStripButton2.Click += OpenFile_Click;      // Открыть
-            toolStripButton3.Click += SaveFile_Click;      // Сохранить
-            toolStripButton4.Click += Undo_Click;          // Отменить
-            toolStripButton5.Click += Redo_Click;          // Повторить
-            toolStripButton6.Click += Copy_Click;          // Копировать
-            toolStripButton7.Click += Cut_Click;           // Вырезать
-            toolStripButton8.Click += Paste_Click;         // Вставить
-            toolStripButton9.Click += StartAnalysis_Click; // Пуск
-            toolStripButton10.Click += Help_Click;         // Вызов справки
-            toolStripButton11.Click += About_Click;        // О программе
+            toolStripButton1.Click += NewFile_Click;
+            toolStripButton2.Click += OpenFile_Click;
+            toolStripButton3.Click += SaveFile_Click;
+            toolStripButton4.Click += Undo_Click;
+            toolStripButton5.Click += Redo_Click;
+            toolStripButton6.Click += Copy_Click;
+            toolStripButton7.Click += Cut_Click;
+            toolStripButton8.Click += Paste_Click;
+            toolStripButton9.Click += StartAnalysis_Click;
+            toolStripButton10.Click += Help_Click;
+            toolStripButton11.Click += About_Click;
         }
 
         private void ShowInfoWindow(string title, string content)
@@ -167,7 +463,6 @@ namespace LABA1A
                 BackColor = Color.White
             };
 
-            //  кнопка "Закрыть"
             Button closeButton = new Button
             {
                 Text = "Закрыть",
@@ -250,7 +545,6 @@ namespace LABA1A
             return false;
         }
 
-        // Обработчики событий меню "Файл"
         private void NewFile_Click(object sender, EventArgs e)
         {
             if (PromptSaveChanges())
@@ -308,7 +602,6 @@ namespace LABA1A
             }
         }
 
-        // Обработчики событий меню "Правка"
         private void Undo_Click(object sender, EventArgs e)
         {
             if (richTextBox1.CanUndo)
@@ -365,85 +658,36 @@ namespace LABA1A
             richTextBox1.SelectAll();
         }
 
-        // Обработчик для кнопки "Пуск"
-        // Обработчик для кнопки "Пуск"
-        // Обработчик для кнопки "Пуск"
         private void StartAnalysis_Click(object sender, EventArgs e)
         {
-            // Очищаем предыдущие результаты
             dataGridView1.Rows.Clear();
 
-            // Получаем текст из редактора
             string text = richTextBox1.Text;
 
             if (string.IsNullOrWhiteSpace(text))
             {
-                // Не добавляем никаких сообщений для пустого текста
                 return;
             }
 
-            // Анализируем текст
-            AnalyzeText(text);
+            Scanner scanner = new Scanner();
+            List<Token> tokens = scanner.Analyze(text);
 
-            // Подсветка синтаксиса (дополнительное задание)
-            HighlightSyntax();
-        }
-
-        private void AnalyzeText(string text)
-        {
-            string[] lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-            int lineNumber = 1;
-            int openBrackets = 0;
-            int closeBrackets = 0;
-
-            // Сначала посчитаем все скобки в тексте
-            foreach (char c in text)
+            foreach (var token in tokens)
             {
-                if (c == '{') openBrackets++;
-                if (c == '}') closeBrackets++;
-            }
+                int rowIndex = dataGridView1.Rows.Add(
+                    token.Code,
+                    token.Type,
+                    token.Lexeme,
+                    $"строка {token.Line}, {token.StartPos}-{token.EndPos}"
+                );
 
-            foreach (string line in lines)
-            {
-                // Проверка на наличие точки с запятой в конце строки
-                // Игнорируем строки с открывающими/закрывающими скобками
-                string trimmedLine = line.Trim();
-                if (!string.IsNullOrWhiteSpace(trimmedLine) &&
-                    !trimmedLine.StartsWith("//") &&
-                    !trimmedLine.EndsWith("{") &&
-                    !trimmedLine.EndsWith("}") &&
-                    !trimmedLine.EndsWith(";"))
+                if (token.Code == -1)
                 {
-                    // Проверяем, что это не строка с if, for, while без точки с запятой
-                    if (!trimmedLine.StartsWith("if") &&
-                        !trimmedLine.StartsWith("for") &&
-                        !trimmedLine.StartsWith("while") &&
-                        !trimmedLine.StartsWith("else"))
-                    {
-                        AddResult(lineNumber.ToString(), (line.Length + 1).ToString(),
-                                 "Ошибка: Отсутствует точка с запятой ';' в конце строки");
-                    }
+                    dataGridView1.Rows[rowIndex].DefaultCellStyle.BackColor = Color.LightCoral;
                 }
-
-                lineNumber++;
             }
 
-            // Проверка на несбалансированные скобки (один раз для всего текста)
-            if (openBrackets > closeBrackets)
-            {
-                AddResult("1", "1",
-                         "Предупреждение: Несбалансированные скобки - больше открывающих '{'");
-            }
-            else if (closeBrackets > openBrackets)
-            {
-                AddResult("1", "1",
-                         "Предупреждение: Несбалансированные скобки - больше закрывающих '}'");
-            }
-        }
-
-        private void AddResult(string line, string position, string message)
-        {
-            dataGridView1.Rows.Add(line, position, message);
+            HighlightSyntax();
         }
 
         private void DataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
@@ -452,102 +696,63 @@ namespace LABA1A
             {
                 try
                 {
-                    string lineStr = dataGridView1.Rows[e.RowIndex].Cells["Line"].Value?.ToString();
-                    string posStr = dataGridView1.Rows[e.RowIndex].Cells["Position"].Value?.ToString();
+                    string location = dataGridView1.Rows[e.RowIndex].Cells["Location"].Value?.ToString();
+                    if (string.IsNullOrEmpty(location)) return;
 
-                    if (!string.IsNullOrEmpty(lineStr) && int.TryParse(lineStr, out int line))
+                    string[] parts = location.Replace("строка ", "").Split(',');
+                    if (parts.Length != 2) return;
+
+                    if (int.TryParse(parts[0], out int line))
                     {
-                        // Переходим к указанной строке
-                        int charIndex = 0;
-                        string[] lines = richTextBox1.Lines;
-
-                        for (int i = 0; i < line - 1 && i < lines.Length; i++)
+                        string[] positions = parts[1].Split('-');
+                        if (positions.Length == 2 && int.TryParse(positions[0], out int startPos))
                         {
-                            charIndex += lines[i].Length + Environment.NewLine.Length;
-                        }
+                            int charIndex = 0;
+                            string[] lines = richTextBox1.Lines;
 
-                        if (!string.IsNullOrEmpty(posStr) && int.TryParse(posStr, out int position))
-                        {
-                            // Корректируем позицию (не выходим за границы строки)
-                            if (line - 1 < lines.Length)
+                            for (int i = 0; i < line - 1 && i < lines.Length; i++)
                             {
-                                position = Math.Min(position, lines[line - 1].Length);
-                            }
-                            charIndex += Math.Max(0, position - 1);
-                        }
-
-                        if (charIndex >= 0 && charIndex < richTextBox1.TextLength)
-                        {
-                            richTextBox1.Focus();
-
-                            // СБРАСЫВАЕМ ЦВЕТ ВСЕГО ТЕКСТА ПЕРЕД НОВЫМ ВЫДЕЛЕНИЕМ
-                            int originalSelectionStart = richTextBox1.SelectionStart;
-                            int originalSelectionLength = richTextBox1.SelectionLength;
-
-                            richTextBox1.SelectAll();
-                            richTextBox1.SelectionColor = Color.Black;
-
-                            // Теперь выделяем ошибку
-                            richTextBox1.Select(charIndex, 0);
-
-                            // Выделяем слово или символ, где ошибка
-                            int endOfLine = richTextBox1.Text.IndexOf('\n', charIndex);
-                            if (endOfLine == -1) endOfLine = richTextBox1.TextLength;
-
-                            // Ищем конец текущего слова
-                            int endOfWord = charIndex;
-                            while (endOfWord < endOfLine && !char.IsWhiteSpace(richTextBox1.Text[endOfWord]))
-                            {
-                                endOfWord++;
+                                charIndex += lines[i].Length + Environment.NewLine.Length;
                             }
 
-                            int length = Math.Max(1, endOfWord - charIndex);
-                            richTextBox1.SelectionLength = length;
-                            richTextBox1.SelectionColor = Color.Red;
+                            charIndex += startPos;
 
-                            richTextBox1.ScrollToCaret();
+                            if (charIndex >= 0 && charIndex < richTextBox1.TextLength)
+                            {
+                                richTextBox1.Focus();
 
-                            // Восстанавливаем выделение после подсветки синтаксиса
-                            // Но оставляем красное выделение для видимости ошибки
+                                int originalStart = richTextBox1.SelectionStart;
+                                int originalLength = richTextBox1.SelectionLength;
+
+                                richTextBox1.SelectAll();
+                                richTextBox1.SelectionColor = Color.Black;
+
+                                richTextBox1.Select(charIndex, 0);
+
+                                int endOfLine = richTextBox1.Text.IndexOf('\n', charIndex);
+                                if (endOfLine == -1) endOfLine = richTextBox1.TextLength;
+
+                                int endOfWord = charIndex;
+                                while (endOfWord < endOfLine && !char.IsWhiteSpace(richTextBox1.Text[endOfWord]))
+                                {
+                                    endOfWord++;
+                                }
+
+                                int length = Math.Max(1, endOfWord - charIndex);
+                                richTextBox1.SelectionLength = length;
+                                richTextBox1.SelectionColor = Color.Red;
+
+                                richTextBox1.ScrollToCaret();
+                            }
                         }
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    // Игнорируем ошибки перехода
                 }
             }
         }
 
-        // Добавим обработчик TextChanged для сброса цвета при изменении текста
-        private void RichTextBox1_TextChanged1(object sender, EventArgs e)
-        {
-            isTextModified = true;
-            UpdateTitle();
-
-            // Сбрасываем цвет текста при изменении
-            // Но делаем это с задержкой, чтобы не мешать вводу
-            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
-            timer.Interval = 500;
-            timer.Tick += (s, args) =>
-            {
-                // Возвращаем черный цвет для всего текста
-                int selectionStart = richTextBox1.SelectionStart;
-                int selectionLength = richTextBox1.SelectionLength;
-
-                richTextBox1.SelectAll();
-                richTextBox1.SelectionColor = Color.Black;
-
-                richTextBox1.Select(selectionStart, selectionLength);
-
-                timer.Stop();
-                timer.Dispose();
-            };
-            timer.Start();
-        }
-
-        // Подсветка синтаксиса (дополнительное задание)
-        // Подсветка синтаксиса (дополнительное задание)
         private void HighlightSyntax()
         {
             if (richTextBox1.TextLength == 0) return;
@@ -555,13 +760,10 @@ namespace LABA1A
             int selectionStart = richTextBox1.SelectionStart;
             int selectionLength = richTextBox1.SelectionLength;
 
-            // Сохраняем оригинальный текст
             string text = richTextBox1.Text;
 
-            // Временно отключаем обработчик TextChanged
             richTextBox1.TextChanged -= RichTextBox1_TextChanged;
 
-            // Сбрасываем форматирование ТОЛЬКО если нет красного выделения ошибки
             bool hasRedSelection = false;
             for (int i = 0; i < richTextBox1.TextLength; i++)
             {
@@ -580,20 +782,16 @@ namespace LABA1A
                 richTextBox1.SelectionFont = new Font(richTextBox1.Font, FontStyle.Regular);
             }
 
-            // Разбиваем на слова и выделяем ключевые слова
             string[] words = text.Split(new[] { ' ', '\n', '\r', '\t', '(', ')', '{', '}', ';', ',', '.', '=', '+', '-', '*', '/' },
                 StringSplitOptions.RemoveEmptyEntries);
 
             foreach (string word in words)
             {
-                // Проверяем, является ли слово ключевым
                 if (keywords.Contains(word.ToLower()))
                 {
-                    // Находим все вхождения слова
                     int index = 0;
                     while ((index = text.IndexOf(word, index, StringComparison.Ordinal)) != -1)
                     {
-                        // Проверяем, что это отдельное слово
                         bool isWholeWord = true;
 
                         if (index > 0)
@@ -611,7 +809,6 @@ namespace LABA1A
                                 isWholeWord = false;
                         }
 
-                        // Проверяем, не красное ли это выделение
                         richTextBox1.Select(index, word.Length);
                         if (isWholeWord && richTextBox1.SelectionColor != Color.Red)
                         {
@@ -624,14 +821,11 @@ namespace LABA1A
                 }
             }
 
-            // Возвращаем выделение на место
             richTextBox1.Select(selectionStart, selectionLength);
 
-            // Включаем обработчик обратно
             richTextBox1.TextChanged += RichTextBox1_TextChanged;
         }
 
-        // Обработчики событий меню "Справка"
         private void Help_Click(object sender, EventArgs e)
         {
             string helpText =
@@ -708,12 +902,10 @@ namespace LABA1A
             {
                 try
                 {
-                    // Обновляем положение разделителя при изменении размера окна
                     splitContainer.SplitterDistance = (int)(this.ClientSize.Height * 0.7);
                 }
                 catch
                 {
-                    // Игнорируем ошибки при изменении размера
                 }
             }
         }
