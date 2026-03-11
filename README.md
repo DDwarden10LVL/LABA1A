@@ -23,7 +23,7 @@
 **Год:** 2026
 
 <<<<<<< HEAD
-*Пример ввода:*
+**Пример ввода:**
 public abstract void NAME(int x);
 
 **Список допустимых лексем**
@@ -43,10 +43,10 @@ string
 ;
 ___ - пробел
 ---
-*![Диаграмма состояния:]* ---(c:\Users\Perfect_Player\source\repos\LABA1A\3.png)
-*![Пример правильного ввода:]* ---(c:\Users\Perfect_Player\source\repos\LABA1A\1.png)
-*![Пример неправильного ввода:]* ---(c:\Users\Perfect_Player\source\repos\LABA1A\2.png)
-*![Пример многострочия:]* --- (c:\Users\Perfect_Player\source\repos\LABA1A\4.png)
+*![Диаграмма состояния:]* ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\3.png)
+*![Пример правильного ввода:]* ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\1.png)
+*![Пример неправильного ввода:]* ---(C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\2.png)
+*![Пример многострочия:]* --- (C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\4.png)
 
 =======
 
