@@ -22,11 +22,29 @@
 
 **Год:** 2026
 
-<<<<<<< HEAD
 **Пример ввода:**
 public abstract void NAME(int x);
 
-**Список допустимых лексем**
+<h4> Список допустимых лексем</h4>
+<ul>
+<li>private</li>
+<li>protected</li>
+<li>Идентификатор</li>
+<li>internal</li>
+<li>public</li>
+<li>abstract</li>
+<li>void</li>
+<li>int</li>
+<li>bool</li>
+<li>char</li>
+<li>string</li>
+<li>(</li>
+<li>)</li>
+<li>,</li>
+<li>;</li>
+<li>___ - пробел</li>
+<li>индификатор</li>
+</ul>
 private
 protected
 internal
