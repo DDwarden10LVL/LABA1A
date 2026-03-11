@@ -47,10 +47,10 @@ public abstract void NAME(int x);
 </ul>
 
 ---
-![Диаграмма состояния:](C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\3.png)
-![Пример правильного ввода:](C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\1.png)
-![Пример неправильного ввода:](C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\2.png)
-![Пример многострочия:](C:\Users\Perfect_Player\GitHUBReposes\LABA1A\LABA1A\4.png)
+![Диаграмма состояния:](3.png)
+![Пример правильного ввода:](1.png)
+![Пример неправильного ввода:](2.png)
+![Пример многострочия:](4.png)
 
 =======
 
