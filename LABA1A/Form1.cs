@@ -12,6 +12,8 @@ namespace LABA1A
         private string currentFilePath = string.Empty;
         private bool isTextModified = false;
         private SplitContainer splitContainer;
+        private DataGridView dataGridViewErrors;
+        private Label lblErrorCount;
 
         private enum TokenType
         {
@@ -35,15 +37,23 @@ namespace LABA1A
             Identifier = 18,
             Error = -1
         }
-        //Храним инфу о кадой выд лексеме во время прогонки
+
         private class Token
         {
-            public int Code { get; set; } //чис иннд
-            public string Type { get; set; } // для отображения
-            public string Lexeme { get; set; } //строка разбита
+            public int Code { get; set; }
+            public string Type { get; set; }
+            public string Lexeme { get; set; }
             public int Line { get; set; }
             public int StartPos { get; set; }
             public int EndPos { get; set; }
+        }
+
+        public class SyntaxError
+        {
+            public string Fragment { get; set; }
+            public int Line { get; set; }
+            public int Position { get; set; }
+            public string Description { get; set; }
         }
 
         private class Scanner
@@ -57,9 +67,9 @@ namespace LABA1A
             private enum State
             {
                 Start,
-                KeywordOrIdentifier,//ключ слово
-                Delimiter,// разделитель
-                Operator,//скобки, запятые, точказап
+                KeywordOrIdentifier,
+                Delimiter,
+                Operator,
                 Error,
                 Finish
             }
@@ -73,13 +83,13 @@ namespace LABA1A
             private int lexemeStartPos;
             private int lexemeStartLine;
 
-            public List<Token> Analyze(string inputText)// конеч сканер
+            public List<Token> Analyze(string inputText)
             {
                 text = inputText;
                 position = 0;
                 line = 1;
                 lineStartPos = 0;
-                tokens = new List<Token>();//пуст
+                tokens = new List<Token>();
                 lexemeBuffer = new StringBuilder();
 
                 State currentState = State.Start;
@@ -106,7 +116,7 @@ namespace LABA1A
                     }
                 }
 
-                return tokens;// список найденых лексем
+                return tokens;
             }
 
             private State ProcessStart()
@@ -118,7 +128,7 @@ namespace LABA1A
 
                 char currentChar = text[position];
 
-                lexemeBuffer.Clear();//перед новой лексемой
+                lexemeBuffer.Clear();
                 lexemeStartPos = position - lineStartPos;
                 lexemeStartLine = line;
 
@@ -140,14 +150,14 @@ namespace LABA1A
                     position++;
                     return State.Operator;
                 }
-                else if (currentChar == '\n')// конец
+                else if (currentChar == '\n')
                 {
                     line++;
                     lineStartPos = position + 1;
                     position++;
                     return State.Start;
                 }
-                else if (currentChar == '\r')// переход
+                else if (currentChar == '\r')
                 {
                     position++;
                     return State.Start;
@@ -174,24 +184,24 @@ namespace LABA1A
                 {
                     lexemeBuffer.Append(currentChar);
                     position++;
-                    return State.KeywordOrIdentifier;// продолжаем наполнять
+                    return State.KeywordOrIdentifier;
                 }
-                else//символ не конец слова
+                else
                 {
-                    FinalizeKeywordOrIdentifier();//токен
+                    FinalizeKeywordOrIdentifier();
                     return State.Start;
                 }
             }
 
             private State ProcessDelimiter()
             {
-                FinalizeDelimiter();//лексема пробел
+                FinalizeDelimiter();
                 return State.Start;
             }
 
             private State ProcessOperator()
             {
-                FinalizeOperator();// лексема ();,
+                FinalizeOperator();
                 return State.Start;
             }
 
@@ -201,7 +211,7 @@ namespace LABA1A
                 return State.Start;
             }
 
-            private void FinalizeKeywordOrIdentifier()//создает лексему из буфера
+            private void FinalizeKeywordOrIdentifier()
             {
                 string lexeme = lexemeBuffer.ToString();
                 Token token = new Token
@@ -212,7 +222,7 @@ namespace LABA1A
                     EndPos = lexemeStartPos + lexeme.Length - 1
                 };
 
-                if (keywords.Contains(lexeme))//kw - hashset
+                if (keywords.Contains(lexeme))
                 {
                     switch (lexeme)
                     {
@@ -261,10 +271,10 @@ namespace LABA1A
                 else
                 {
                     token.Code = (int)TokenType.Identifier;
-                    token.Type = "идентификатор";//типо ___ ___ NAME(___ X);
+                    token.Type = "идентификатор";
                 }
 
-                tokens.Add(token);//сохранение
+                tokens.Add(token);
             }
 
             private void FinalizeDelimiter()
@@ -335,9 +345,183 @@ namespace LABA1A
                 tokens.Add(token);
             }
         }
-        /// <summary>
-        /// /////////////////////////////////////
-        /// </summary>
+
+        private class Parser
+        {
+            private List<Token> tokens;
+            private int currentPos;
+            private Token currentToken;
+            private List<SyntaxError> errors;
+            private int currentLine;
+            private int currentPosInLine;
+
+            private HashSet<string> modyfSet = new HashSet<string>
+            {
+                "public", "internal", "protected"
+            };
+
+            private HashSet<string> tipSet = new HashSet<string>
+            {
+                "int", "string", "char", "void"
+            };
+
+            public List<SyntaxError> Parse(List<Token> tokens)
+            {
+                this.tokens = tokens;
+                this.currentPos = 0;
+                this.errors = new List<SyntaxError>();
+                this.currentLine = 1;
+                this.currentPosInLine = 0;
+
+                if (tokens == null || tokens.Count == 0)
+                {
+                    return errors;
+                }
+
+                currentToken = tokens[0];
+                SkipWhitespace();
+
+                if (currentToken != null)
+                {
+                    Start();
+                }
+
+                return errors;
+            }
+
+            private void SkipWhitespace()
+            {
+                while (currentToken != null && currentToken.Code == (int)TokenType.Whitespace)
+                {
+                    NextToken();
+                }
+            }
+
+            private void NextToken()
+            {
+                currentPos++;
+                if (currentPos < tokens.Count)
+                {
+                    currentToken = tokens[currentPos];
+                    if (currentToken != null)
+                    {
+                        currentLine = currentToken.Line;
+                        currentPosInLine = currentToken.StartPos;
+                    }
+                }
+                else
+                {
+                    currentToken = null;
+                }
+            }
+
+            private void AddError(string description, Token token = null)
+            {
+                Token errToken = token ?? currentToken;
+                errors.Add(new SyntaxError
+                {
+                    Fragment = errToken?.Lexeme ?? "конец строки",
+                    Line = errToken?.Line ?? currentLine,
+                    Position = errToken?.StartPos ?? currentPosInLine,
+                    Description = description
+                });
+            }
+
+            private bool CheckAndConsume(string expected, string errorMsg)
+            {
+                SkipWhitespace();
+
+                if (currentToken != null && currentToken.Lexeme == expected)
+                {
+                    NextToken();
+                    return true;
+                }
+                else
+                {
+                    AddError(errorMsg);
+                    return false;
+                }
+            }
+
+            private bool CheckAndConsumeType(HashSet<string> expectedSet, string errorMsg)
+            {
+                SkipWhitespace();
+
+                if (currentToken != null && expectedSet.Contains(currentToken.Lexeme))
+                {
+                    NextToken();
+                    return true;
+                }
+                else
+                {
+                    AddError(errorMsg);
+                    return false;
+                }
+            }
+
+            private bool CheckAndConsumeIdentifier(string errorMsg)
+            {
+                SkipWhitespace();
+
+                if (currentToken != null && currentToken.Code == (int)TokenType.Identifier)
+                {
+                    NextToken();
+                    return true;
+                }
+                else
+                {
+                    AddError(errorMsg);
+                    return false;
+                }
+            }
+
+            private void Start()
+            {
+                CheckAndConsumeType(modyfSet, "Ожидался модификатор доступа (public/internal/protected)");
+                CheckAndConsume("abstract", "Ожидалось ключевое слово 'abstract'");
+                CheckAndConsumeType(tipSet, "Ожидался тип возвращаемого значения (int/string/char/void)");
+                CheckAndConsumeIdentifier("Ожидалось имя метода (идентификатор)");
+                CheckAndConsume("(", "Ожидалась открывающая скобка '('");
+
+                Params();
+
+                CheckAndConsume(")", "Ожидалась закрывающая скобка ')'");
+                CheckAndConsume(";", "Ожидалась ';' в конце объявления метода");
+
+                SkipWhitespace();
+                if (currentToken != null)
+                {
+                    AddError("Лишние символы после окончания объявления метода");
+                }
+            }
+
+            private void Params()
+            {
+                SkipWhitespace();
+
+                if (currentToken != null && currentToken.Lexeme == ")")
+                {
+                    return;
+                }
+
+                Param();
+
+                SkipWhitespace();
+                while (currentToken != null && currentToken.Lexeme == ",")
+                {
+                    NextToken();
+                    Param();
+                    SkipWhitespace();
+                }
+            }
+
+            private void Param()
+            {
+                CheckAndConsumeType(tipSet, "Ожидался тип параметра (int/string/char/void)");
+                CheckAndConsumeIdentifier("Ожидалось имя параметра (идентификатор)");
+            }
+        }
+
         private readonly List<string> keywords = new List<string>
         {
             "if", "else", "while", "for", "foreach", "switch", "case",
@@ -350,9 +534,8 @@ namespace LABA1A
         {
             InitializeComponent();
             InitializeCustomComponents();
-            this.Text = "Текстовый редактор - Лабораторная работа 1";
+            this.Text = "Текстовый редактор - Лабораторная работа 3";
             UpdateTitle();
-
             this.FormClosing += Form1_FormClosing;
         }
 
@@ -365,6 +548,7 @@ namespace LABA1A
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal
             };
+
             richTextBox1.TextChanged += RichTextBox1_TextChanged;
 
             dataGridView1 = new DataGridView
@@ -382,13 +566,47 @@ namespace LABA1A
             dataGridView1.Columns.Add("Type", "Тип лексемы");
             dataGridView1.Columns.Add("Lexeme", "Лексема");
             dataGridView1.Columns.Add("Location", "Местоположение");
+            dataGridView1.Columns["Code"].Width = 80;
+            dataGridView1.Columns["Type"].Width = 150;
+            dataGridView1.Columns["Lexeme"].Width = 150;
+            dataGridView1.Columns["Location"].Width = 120;
 
             dataGridView1.CellClick += DataGridView1_CellClick;
 
-            splitContainer.Panel1.Controls.Add(richTextBox1);
-            splitContainer.Panel2.Controls.Add(dataGridView1);
+            dataGridViewErrors = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                RowHeadersVisible = false
+            };
 
-            splitContainer.SplitterDistance = (int)(this.ClientSize.Height * 0.7);
+            dataGridViewErrors.Columns.Add("Fragment", "Неверный фрагмент");
+            dataGridViewErrors.Columns.Add("Location", "Местоположение");
+            dataGridViewErrors.Columns.Add("Description", "Описание ошибки");
+            dataGridViewErrors.Columns["Fragment"].Width = 120;
+            dataGridViewErrors.Columns["Location"].Width = 120;
+            dataGridViewErrors.Columns["Description"].Width = 250;
+
+            dataGridViewErrors.CellClick += DataGridViewErrors_CellClick;
+
+            SplitContainer verticalSplit = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Vertical,
+                SplitterDistance = (int)(this.ClientSize.Width * 0.5)
+            };
+
+            verticalSplit.Panel1.Controls.Add(dataGridView1);
+            verticalSplit.Panel2.Controls.Add(dataGridViewErrors);
+
+            splitContainer.Panel1.Controls.Add(richTextBox1);
+            splitContainer.Panel2.Controls.Add(verticalSplit);
+
+            splitContainer.SplitterDistance = (int)(this.ClientSize.Height * 0.6);
 
             this.Controls.Add(splitContainer);
             this.Controls.Add(menuStrip1);
@@ -396,6 +614,16 @@ namespace LABA1A
 
             menuStrip1.BringToFront();
             toolStrip1.BringToFront();
+
+            lblErrorCount = new Label
+            {
+                Dock = DockStyle.Bottom,
+                Height = 30,
+                TextAlign = ContentAlignment.MiddleCenter,
+                BackColor = Color.LightGray,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+            this.Controls.Add(lblErrorCount);
 
             SubscribeMenuEvents();
         }
@@ -661,11 +889,14 @@ namespace LABA1A
         private void StartAnalysis_Click(object sender, EventArgs e)
         {
             dataGridView1.Rows.Clear();
+            dataGridViewErrors.Rows.Clear();
 
             string text = richTextBox1.Text;
 
             if (string.IsNullOrWhiteSpace(text))
             {
+                lblErrorCount.Text = "Введите текст для анализа";
+                lblErrorCount.ForeColor = Color.Orange;
                 return;
             }
 
@@ -684,6 +915,30 @@ namespace LABA1A
                 if (token.Code == -1)
                 {
                     dataGridView1.Rows[rowIndex].DefaultCellStyle.BackColor = Color.LightCoral;
+                }
+            }
+
+            Parser parser = new Parser();
+            List<SyntaxError> errors = parser.Parse(tokens);
+
+            if (errors.Count == 0)
+            {
+                lblErrorCount.ForeColor = Color.Green;
+                lblErrorCount.Text = "Синтаксических ошибок не обнаружено!";
+            }
+            else
+            {
+                lblErrorCount.ForeColor = Color.Red;
+                lblErrorCount.Text = $"Общее количество ошибок: {errors.Count}";
+
+                foreach (var error in errors)
+                {
+                    int rowIndex = dataGridViewErrors.Rows.Add(
+                        error.Fragment,
+                        $"строка {error.Line}, позиция {error.Position}",
+                        error.Description
+                    );
+                    dataGridViewErrors.Rows[rowIndex].DefaultCellStyle.BackColor = Color.LightCoral;
                 }
             }
 
@@ -720,28 +975,7 @@ namespace LABA1A
                             if (charIndex >= 0 && charIndex < richTextBox1.TextLength)
                             {
                                 richTextBox1.Focus();
-
-                                int originalStart = richTextBox1.SelectionStart;
-                                int originalLength = richTextBox1.SelectionLength;
-
-                                richTextBox1.SelectAll();
-                                richTextBox1.SelectionColor = Color.Black;
-
-                                richTextBox1.Select(charIndex, 0);
-
-                                int endOfLine = richTextBox1.Text.IndexOf('\n', charIndex);
-                                if (endOfLine == -1) endOfLine = richTextBox1.TextLength;
-
-                                int endOfWord = charIndex;
-                                while (endOfWord < endOfLine && !char.IsWhiteSpace(richTextBox1.Text[endOfWord]))
-                                {
-                                    endOfWord++;
-                                }
-
-                                int length = Math.Max(1, endOfWord - charIndex);
-                                richTextBox1.SelectionLength = length;
-                                richTextBox1.SelectionColor = Color.Red;
-
+                                richTextBox1.Select(charIndex, 1);
                                 richTextBox1.ScrollToCaret();
                             }
                         }
@@ -750,6 +984,43 @@ namespace LABA1A
                 catch
                 {
                 }
+            }
+        }
+
+        private void DataGridViewErrors_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                try
+                {
+                    string location = dataGridViewErrors.Rows[e.RowIndex].Cells["Location"].Value?.ToString();
+                    if (string.IsNullOrEmpty(location)) return;
+
+                    string[] parts = location.Replace("строка ", "").Replace("позиция ", "").Split(',');
+                    if (parts.Length != 2) return;
+
+                    if (int.TryParse(parts[0].Trim(), out int line) &&
+                        int.TryParse(parts[1].Trim(), out int position))
+                    {
+                        int charIndex = 0;
+                        string[] lines = richTextBox1.Lines;
+
+                        for (int i = 0; i < line - 1 && i < lines.Length; i++)
+                        {
+                            charIndex += lines[i].Length + Environment.NewLine.Length;
+                        }
+
+                        charIndex += position;
+
+                        if (charIndex >= 0 && charIndex < richTextBox1.TextLength)
+                        {
+                            richTextBox1.Focus();
+                            richTextBox1.Select(charIndex, 1);
+                            richTextBox1.ScrollToCaret();
+                        }
+                    }
+                }
+                catch { }
             }
         }
 
@@ -822,7 +1093,6 @@ namespace LABA1A
             }
 
             richTextBox1.Select(selectionStart, selectionLength);
-
             richTextBox1.TextChanged += RichTextBox1_TextChanged;
         }
 
@@ -853,11 +1123,13 @@ namespace LABA1A
                 "  • Тестовый пример\r\n" +
                 "  • Список литературы\r\n" +
                 "  • Исходный код программы\r\n\r\n" +
-                "Меню 'Пуск' - запускает анализатор текста\r\n\r\n" +
+                "Меню 'Пуск' - запускает лексический и синтаксический анализ текста\r\n\r\n" +
                 "Дополнительные возможности:\r\n" +
                 "  • Подсветка синтаксиса ключевых слов\r\n" +
                 "  • Переход к ошибке при клике в таблице результатов\r\n" +
-                "  • Изменение размеров областей редактирования и вывода";
+                "  • Изменение размеров областей редактирования и вывода\r\n" +
+                "  • Вывод списка лексем и синтаксических ошибок\r\n" +
+                "  • Навигация по ошибкам синтаксиса";
 
             ShowInfoWindow("Справка", helpText);
         }
@@ -865,16 +1137,19 @@ namespace LABA1A
         private void About_Click(object sender, EventArgs e)
         {
             string aboutText =
-                "Текстовый редактор\r\n" +
-                "==================\r\n\r\n" +
-                "Версия 1.0\r\n\r\n" +
-                "Лабораторная работа №1\r\n" +
-                "Разработчик: Ковалев Егор\r\n\r\n" +
+                "Текстовый редактор с лексическим и синтаксическим анализатором\r\n" +
+                "==========================================================\r\n\r\n" +
+                "Версия 2.0\r\n\r\n" +
+                "Лабораторные работы №1, №2, №3\r\n" +
+                "Разработчик: Ковалев Егор\r\n" +
+                "Группа: АП-327\r\n\r\n" +
                 "Функции:\r\n" +
                 "✓ Работа с файлами\r\n" +
                 "✓ Редактирование текста\r\n" +
                 "✓ Подсветка синтаксиса\r\n" +
-                "✓ Анализ текста\r\n\r\n" +
+                "✓ Лексический анализ (сканер)\r\n" +
+                "✓ Синтаксический анализ (парсер)\r\n" +
+                "✓ Навигация по ошибкам\r\n\r\n" +
                 "© 2026";
 
             MessageBox.Show(aboutText, "О программе",
@@ -902,7 +1177,7 @@ namespace LABA1A
             {
                 try
                 {
-                    splitContainer.SplitterDistance = (int)(this.ClientSize.Height * 0.7);
+                    splitContainer.SplitterDistance = (int)(this.ClientSize.Height * 0.6);
                 }
                 catch
                 {
