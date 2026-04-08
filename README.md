@@ -28,7 +28,7 @@ public abstract void NAME(int x);
 internal abstract int a(int x, char y);
 
 **Разработка грамматики:**
-<START>->modyf<TYPES>
+<START>->modyf<TYPES> 
 <TYPES> -> "_" <TYPE>
 <TYPE>-> "abstract" <Type'> 
 <Type'> -> "_" <SPACE>
@@ -46,6 +46,9 @@ internal abstract int a(int x, char y);
 keyw = "abstract"
 tip = "int" | "string" | "char"| "void"
 modyf= "public" | "iternal" | "protected"
+
+![Классификация грамматики по Хомскому:](4.png)
+
 
 Классификация грамматики по Хомскому: контекстно-свободная грамматика
 
