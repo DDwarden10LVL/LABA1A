@@ -1,3 +1,5 @@
+
+## Лабораторная работа №3
 ## Текстовый редактор для процессора
 
 **Название:** Разработка синтаксического анализатора (парсера)
@@ -28,36 +30,74 @@ public abstract void NAME(int x);
 internal abstract int a(int x, char y);
 
 **Разработка грамматики:**
-<START>->modyf<TYPES> 
-<TYPES> -> "_" <TYPE>
-<TYPE>-> "abstract" <Type'> 
-<Type'> -> "_" <SPACE>
-<SPACE> -> tip <Space'>
-<Space'>-> "_"<Indef>
-<Indef> letter <ID> 
-<ID> -> letter <IDREM>
-<IDREM> -> letter <ID> |"(" <BrcO>
-<BrcO> -> tip <Blank'> 
-<Blank'>-> "_" <ID'>
-<ID'> -> letter <IND>
-<IND> -> letter <IDrmn> | "," <BrcO> | ")" <BrcC>
+Разработка грамматики
 
-<BrcC> -> ";" <Break>
-keyw = "abstract"
-tip = "int" | "string" | "char"| "void"
-modyf= "public" | "iternal" | "protected"
+G ( ( public, internal, protected, abstract, void, int, string, char, _, (, ), ,, ;, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z ),
+( START, TYPES, TYPE, Type', SPACE, Space', Indef, ID, IDREM, BrcO, Blank', ID', IND, IDrmn, BrcC, Break ),
+P, START )
+P:
+
+    <START> → <modyf> <TYPES>
+
+    <TYPES> → "_" <TYPE>
+
+    <TYPE> → "abstract" <Type'>
+
+    <Type'> → "_" <SPACE>
+
+    <SPACE> → <tip> <Space'>
+
+    <Space'> → "_" <Indef>
+
+    <Indef> → <letter> <ID>
+
+    <ID> → <letter> <IDREM>
+
+    <IDREM> → <letter> <ID> | "(" <BrcO>
+
+    <BrcO> → <tip> <Blank'>
+
+    <Blank'> → "_" <ID'>
+
+    <ID'> → <letter> <IND>
+
+    <IND> → <letter> <IDrmn> | "," <BrcO> | ")" <BrcC>
+
+    <BrcC> → ";" <Break>
+
+    <Break> → ε
+Терминалы:
+
+    <modyf> → "public" | "internal" | "protected"
+
+    <tip> → "void" | "int" | "string" | "char"
+
+    <letter> → "a" | "b" | ... | "z" | "A" | "B" | ... | "Z" | "_"
+
+
+**На рисунке 1. предстьалена рдиаграмма сканера**
+![диаграмма сканера](6.png)
 
 ![Классификация грамматики по Хомскому:](4.png)
 
 
 Классификация грамматики по Хомскому: контекстно-свободная грамматика
-
+A → α,A ∊ VN(один нетерминал), α ∊ V*(любая цепочка терминалов и нетерминалов)
 **Метод анализа: Рекурсивный спуск**
 ---
 
 **На рисунке 1. предстьален рекурсивный спуск для грамматики выше.**
 ![Диаграмма состояния:](5.png)
 
+**Реализация методом Айронса**
+Разрабатываемый синтаксический анализатор построен на базе контекстно-свободной грамматики. При нахождении лексемы, которая не соответствует грамматике, предлагается свести алгоритм нейтрализации к последовательному пропуску ошибочной лексемы во входной цепочке до тех пор, пока следующий символ не окажется одним из допустимых в данный момент разбора.
+
+1. Обнаружение ошибки
+2. Фиксация ошибки
+3. Пропуск ошибочной лексемы
+4. Продолжение разбора
+5. Повторение цикла - шаги 1-4 повторяются до тех пор, пока не будут обработаны все лексемы входной строки. 
+6. Вывод результатов
 **Пример правильного ввода:**
 ![Пример правильного ввода:](1.png)
 
