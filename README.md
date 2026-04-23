@@ -55,47 +55,48 @@ public abstract void NAME(int x);
 
 public abstract void Calculate(int x, int y);
 public abstract int GetValue();
+
 ---
 **Разработка грамматики:**
 
 Грамматика G = (V<sub>T</sub>, V<sub>N</sub>, P, S)
 
 Множество терминалов V<sub>T</sub>
-{ public, internal, protected, abstract, void, int, string, char, (, ), ,, ;, _, a…z, A…Z, 0…9 }
+{ (, ), ,, ;, _, a…z, A…Z, 0…9 }
 
 Множество нетерминалов V<sub>N</sub>
-{ START, MODIFIER, MODIFIER_TAIL, ABSTRACT, TYPE, IDENTIFIER, IDENTIFIER_TAIL, PARAMS, PARAM, PARAMS_TAIL, LETTER, DIGIT }
+{ <START>, <TYPES>, <ABSTRACT>, <Type'>, <SPACE>, <Space'>, <Indef>, <ID>, <IDREM>, <BrcO>, <DIGIT>, <Blank'>, <ID'>, <IND>, <IDrmn>, <BrcC>, <Break>}
 
-Аксиома S = START
-1.  START         → MODIFIER ABSTRACT TYPE IDENTIFIER '(' PARAMS ')' ';'
-2.  MODIFIER      → 'public' MODIFIER_TAIL
-3.  MODIFIER_TAIL → ε | MODIFIER
-4.  ABSTRACT      → 'abstract'
-5.  TYPE          → 'void' | 'int' | 'string' | 'char'
-6.  IDENTIFIER    → LETTER IDENTIFIER_TAIL
-7.  IDENTIFIER_TAIL → LETTER IDENTIFIER_TAIL | DIGIT IDENTIFIER_TAIL | ε
-8.  PARAMS        → ε | PARAM PARAMS_TAIL
-9.  PARAMS_TAIL   → ε | ',' PARAM PARAMS_TAIL
-10. PARAM         → TYPE IDENTIFIER
-11. LETTER        → 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z' | '_'
-12. DIGIT         → '0' | '1' | ... | '9'
+<START> → <modyf> <TYPES>
 
-Пояснение к грамматике
-Правило 1 задаёт общую структуру объявления: модификатор, abstract, тип, имя метода, открывающая скобка, параметры, закрывающая скобка, точка с запятой.
+<TYPES> → "_" <TYPE>
 
-Правила 2–3 описывают необязательные модификаторы (в рамках данной работы обязателен public, но грамматика допускает и другие модификаторы).
+<TYPE> → "abstract" <Type'>
 
-Правило 4 фиксирует обязательное ключевое слово abstract.
+<Type'> → "_" <SPACE>
 
-Правило 5 определяет допустимые типы возвращаемого значения.
+<SPACE> → <tip> <Space'>
 
-Правила 6–7 описывают идентификатор (имя метода или параметра) как последовательность букв и цифр, начинающуюся с буквы.
+<Space'> → "_" <Indef>
 
-Правила 8–9 описывают список параметров: может быть пустым, либо содержать один или несколько параметров, разделённых запятыми.
+<Indef> → <letter> <ID>
 
-Правило 10 определяет параметр: тип и имя.
+<ID> → <letter> <IDREM>
 
-Правила 11–12 задают буквы и цифры.
+<IDREM> → <letter> <ID> | "(" <BrcO>
+
+<BrcO> → <tip> <Blank'>
+
+<Blank'> → "_" <ID'>
+
+<ID'> → <letter> <IND>
+
+<IND> → <letter> <IDrmn> | "," <BrcO> | ")" <BrcC>
+
+<BrcC> → ";" <Break>
+
+<Break> → ε
+
 
 ---
 **На рисунке 1. представленна диаграмма сканера**
