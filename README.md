@@ -100,6 +100,9 @@ public abstract int GetValue();
     <Break> → ε
 
 
+< tip > = "int" | "string" | "char"| "void"
+< modyf >= "public" | "iternal" | "protected"
+
 ---
 **На рисунке 1. представленна диаграмма сканера**
 ![диаграмма сканера](6.png)
