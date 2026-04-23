@@ -65,9 +65,9 @@ public abstract int GetValue();
 { (, ), ,, ;, _, a…z, A…Z, 0…9 }
 
 Множество нетерминалов V<sub>N</sub> 
-    $$
+    
     {<START>, <TYPES>, <ABSTRACT>, <Type'>, <SPACE>, <Space'>, <Indef>, <ID>, <IDREM>, <BrcO>, <DIGIT>, <Blank'>, <ID'>, <IND>, <IDrmn>, <BrcC>, <Break>}
-    $$
+    
 
     <START> → <modyf> <TYPES>
 
