@@ -64,38 +64,40 @@ public abstract int GetValue();
 Множество терминалов V<sub>T</sub>
 { (, ), ,, ;, _, a…z, A…Z, 0…9 }
 
-Множество нетерминалов V<sub>N</sub>
-{ <START>, <TYPES>, <ABSTRACT>, <Type'>, <SPACE>, <Space'>, <Indef>, <ID>, <IDREM>, <BrcO>, <DIGIT>, <Blank'>, <ID'>, <IND>, <IDrmn>, <BrcC>, <Break>}
+Множество нетерминалов V<sub>N</sub> 
+    $$
+    {<START>, <TYPES>, <ABSTRACT>, <Type'>, <SPACE>, <Space'>, <Indef>, <ID>, <IDREM>, <BrcO>, <DIGIT>, <Blank'>, <ID'>, <IND>, <IDrmn>, <BrcC>, <Break>}
+    $$
 
-<START> → <modyf> <TYPES>
+    <START> → <modyf> <TYPES>
 
-<TYPES> → "_" <TYPE>
+    <TYPES> → "_" <TYPE>
 
-<TYPE> → "abstract" <Type'>
+    <TYPE> → "abstract" <Type'>
 
-<Type'> → "_" <SPACE>
+    <Type'> → "_" <SPACE>
 
-<SPACE> → <tip> <Space'>
+    <SPACE> → <tip> <Space'>
 
-<Space'> → "_" <Indef>
+    <Space'> → "_" <Indef>
 
-<Indef> → <letter> <ID>
+    <Indef> → <letter> <ID>
 
-<ID> → <letter> <IDREM>
+    <ID> → <letter> <IDREM>
 
-<IDREM> → <letter> <ID> | "(" <BrcO>
+    <IDREM> → <letter> <ID> | "(" <BrcO>
 
-<BrcO> → <tip> <Blank'>
+    <BrcO> → <tip> <Blank'>
 
-<Blank'> → "_" <ID'>
+    <Blank'> → "_" <ID'>
 
-<ID'> → <letter> <IND>
+    <ID'> → <letter> <IND>
 
-<IND> → <letter> <IDrmn> | "," <BrcO> | ")" <BrcC>
+    <IND> → <letter> <IDrmn> | "," <BrcO> | ")" <BrcC>
 
-<BrcC> → ";" <Break>
+    <BrcC> → ";" <Break>
 
-<Break> → ε
+    <Break> → ε
 
 
 ---
