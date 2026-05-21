@@ -808,7 +808,7 @@ grep -A45 "FunctionDecl.*main" ast_main.txt
 clang -Xclang -ast-dump -fsyntax-only main2.c
 
 Рисунок 4 — фрагмент AST для функций square и main
-![убунта](lb74.png)
+![убунта](Screenshot_23.png)
 
 В AST функция square представлена узлом FunctionDecl. Параметр x отображается как ParmVarDecl, а операция x * x — как BinaryOperator. Функция main также представлена как FunctionDecl, внутри которого видны объявления переменных, вызов square и вызов printf.
 
@@ -828,7 +828,7 @@ grep -n "define\|alloca\|load\|store\|call\|printf" main_02.ll
 
 Рисунок 5 — LLVM IR без оптимизации для main.c
 
-![убунта](Screenshot_8.png)
+![убунта](Screenshot_24.png)
 
 Рисунок 6 — сравнение ключевых инструкций в IR без оптимизации и после -O2
 
@@ -886,7 +886,7 @@ dot -Tpng .square.dot -o cfg_square_02.png
 
 Рисунок 11 — CFG функции square после оптимизации -O2
 
-![убунта](Screenshot_14.png)
+![убунта](Screenshot_25.png)
 
 
 Так как программа не содержит условных операторов и циклов, CFG для каждой функции состоит из одного базового блока. После оптимизации меняется содержимое блока, но структура управления остается линейной.
